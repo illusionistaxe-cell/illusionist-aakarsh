@@ -86,7 +86,7 @@ function EventCard({ event, onClick }: { event: Event; onClick: () => void }) {
               src={event.banner_image}
               alt={event.city}
               fill
-              className="object-contain"
+              className="object-contain object-top"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               priority={event.id <= 3}
             />

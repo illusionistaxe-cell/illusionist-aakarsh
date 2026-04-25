@@ -12,8 +12,8 @@ export interface Show {
 export const SHOWS: Show[] = [
   {
     id: "1",
-    date: 19,
-    month: "APR",
+    date: 24,
+    month: "MAY",
     city: "Bangalore",
     venue: "Ramana Maharshi Heritage Auditorium, Sanjay Nagar",
     time: "6:30 PM",

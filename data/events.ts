@@ -11,9 +11,9 @@ export interface Event {
 export const events: Event[] = [
   {
     id: 1,
-    banner_image: "/publicshow.webp",
+    banner_image: "/Show2.png",
     city: "BANGALORE",
-    date: "Apr 19",
+    date: "MAY 24",
     venue: "Ramana Maharshi Heritage Auditorium, Sanjay Nagar",
     time: "6:30 PM",
     ticket_link: "https://in.bookmyshow.com/events/the-matrix-magic-mentalism-show-of-aakarsh/ET00456396",

@@ -14,9 +14,9 @@ export const events: Event[] = [
     banner_image: "/Show2.png",
     city: "BANGALORE",
     date: "MAY 24",
-    venue: "Ramana Maharshi Heritage Auditorium, Sanjay Nagar",
+    venue: "Meenakshi Rangamancha Auditorium",
     time: "6:30 PM",
-    ticket_link: "https://in.bookmyshow.com/events/the-matrix-magic-mentalism-show-of-aakarsh/ET00456396",
+    ticket_link: "https://in.bookmyshow.com/events/the-matricks-magic-and-mentalism-show-of-aakarsh/ET00502303",
   },
   // {
   //   id: 2,

@@ -12,13 +12,13 @@ export interface Show {
 export const SHOWS: Show[] = [
   {
     id: "1",
-    date: 24,
-    month: "MAY",
+    date: 25,
+    month: "JULY",
     city: "Bangalore",
-    venue: "Ramana Maharshi Heritage Auditorium, Sanjay Nagar",
-    time: "6:30 PM",
+    venue: "Meenakshi Rangamancha Auditorium",
+    time: "6:00 PM",
     backgroundImage: "/public-shows background image/public-shows background image1.webp",
-    ticketUrl: "https://in.bookmyshow.com/events/the-matrix-magic-mentalism-show-of-aakarsh/ET00456396",
+    ticketUrl: "https://in.bookmyshow.com/events/the-matricks-magic-and-mentalism-show-of-aakarsh/ET00502303",
   },
   // {
   //   id: "2",

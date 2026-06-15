@@ -13,7 +13,7 @@ export const SHOWS: Show[] = [
   {
     id: "1",
     date: 25,
-    month: "July",
+    month: "JULY",
     city: "Bangalore",
     venue: "Meenakshi Rangamancha Auditorium",
     time: "6:00 PM",

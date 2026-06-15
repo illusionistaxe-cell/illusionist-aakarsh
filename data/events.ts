@@ -13,9 +13,9 @@ export const events: Event[] = [
     id: 1,
     banner_image: "/Show2.png",
     city: "BANGALORE",
-    date: "MAY 24",
+    date: "JULY 25",
     venue: "Meenakshi Rangamancha Auditorium",
-    time: "6:30 PM",
+    time: "6:00 PM",
     ticket_link: "https://in.bookmyshow.com/events/the-matricks-magic-and-mentalism-show-of-aakarsh/ET00502303",
   },
   // {

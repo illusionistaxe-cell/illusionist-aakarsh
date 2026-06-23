@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { readFile, writeFile } from 'fs/promises';
+import { readFile, writeFile, unlink } from 'fs/promises';
 import { join } from 'path';
 
 const INSTAGRAM_USER_ID = '17841405464912653';
@@ -53,6 +53,14 @@ async function refreshTokenIfNeeded(currentToken: string): Promise<string> {
     console.error('Error refreshing token:', error);
   }
   return currentToken;
+}
+
+async function clearStoredToken(): Promise<void> {
+  try {
+    await unlink(TOKEN_FILE_PATH);
+  } catch {
+    // File may not exist
+  }
 }
 
 async function initializeTokenFromEnv(): Promise<void> {
@@ -115,11 +123,18 @@ export async function GET() {
       const errorData = await response.json();
       console.error('Instagram API Error:', errorData);
       
-      // If token error, try refreshing
+      // If token error, clear stale cache and retry with fresh env token
       if (errorData.error?.code === 190 || errorData.error?.message?.includes('token')) {
-        console.log('Token error detected, attempting refresh...');
-        const newToken = await getAccessToken();
-        // Retry with new token
+        console.log('Token error detected, clearing cache and retrying with env token...');
+        await clearStoredToken();
+        await initializeTokenFromEnv();
+        const newToken = process.env.INSTAGRAM_ACCESS_TOKEN || '';
+        if (!newToken) {
+          return NextResponse.json(
+            { error: 'Failed to fetch Instagram posts', details: errorData },
+            { status: response.status }
+          );
+        }
         const retryResponse = await fetch(`https://graph.facebook.com/v24.0/${INSTAGRAM_USER_ID}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=3&access_token=${newToken}`);
         if (retryResponse.ok) {
           const retryData = await retryResponse.json();

@@ -42,7 +42,7 @@ export default function PublicShowsSection() {
         </div>
 
         {/* View All Shows Button - Centered across full page width */}
-        <div className="mt-10 sm:mt-12 md:mt-16 flex justify-center">
+        {/* <div className="mt-10 sm:mt-12 md:mt-16 flex justify-center">
           <a
             href="https://in.bookmyshow.com/person/aakarsh-bhat/1057944"
             target="_blank"
@@ -51,7 +51,7 @@ export default function PublicShowsSection() {
           >
             View All Shows
           </a>
-        </div>
+        </div> */}
       </div>
     </section>
   );

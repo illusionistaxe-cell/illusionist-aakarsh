@@ -12,7 +12,7 @@ export default function PublicShowsSection() {
           PUBLIC SHOWS
         </H2>
         <P className="mt-4 sm:mt-6 text-lg sm:text-xl md:text-2xl lg:text-3xl tracking-wider uppercase">
-          THE MATRIX | A Spiritual Magic And Mentalism Show
+          THE MATRICKS | A Spiritual Magic And Mentalism Show
         </P>
       </div>
 

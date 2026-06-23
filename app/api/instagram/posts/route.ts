@@ -11,7 +11,12 @@ interface TokenData {
   token_type: string;
 }
 
+// Vercel/serverless filesystems are read-only — use env token only in production
+const canUseFileStorage = process.env.VERCEL !== '1';
+
 async function getStoredToken(): Promise<TokenData | null> {
+  if (!canUseFileStorage) return null;
+
   try {
     const fileContent = await readFile(TOKEN_FILE_PATH, 'utf-8');
     return JSON.parse(fileContent);
@@ -21,6 +26,8 @@ async function getStoredToken(): Promise<TokenData | null> {
 }
 
 async function saveToken(tokenData: TokenData): Promise<void> {
+  if (!canUseFileStorage) return;
+
   const dataDir = join(process.cwd(), 'data');
   try {
     await writeFile(TOKEN_FILE_PATH, JSON.stringify(tokenData, null, 2), 'utf-8');
@@ -37,14 +44,14 @@ async function refreshTokenIfNeeded(currentToken: string): Promise<string> {
   try {
     const url = `https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${currentToken}`;
     const response = await fetch(url, { method: 'POST' });
-    
+
     if (response.ok) {
       const data = await response.json();
       const expiresAt = Math.floor(Date.now() / 1000) + data.expires_in;
       const tokenData: TokenData = {
         access_token: data.access_token,
         expires_at: expiresAt,
-        token_type: data.token_type || 'bearer'
+        token_type: data.token_type || 'bearer',
       };
       await saveToken(tokenData);
       return data.access_token;
@@ -56,6 +63,8 @@ async function refreshTokenIfNeeded(currentToken: string): Promise<string> {
 }
 
 async function clearStoredToken(): Promise<void> {
+  if (!canUseFileStorage) return;
+
   try {
     await unlink(TOKEN_FILE_PATH);
   } catch {
@@ -65,69 +74,77 @@ async function clearStoredToken(): Promise<void> {
 
 async function initializeTokenFromEnv(): Promise<void> {
   const initialToken = process.env.INSTAGRAM_ACCESS_TOKEN;
-  if (initialToken) {
-    const expiresAt = Math.floor(Date.now() / 1000) + (50 * 24 * 60 * 60); // 50 days
-    const tokenData: TokenData = {
-      access_token: initialToken,
-      expires_at: expiresAt,
-      token_type: 'bearer'
-    };
-    await saveToken(tokenData);
-  }
+  if (!initialToken) return;
+
+  const expiresAt = Math.floor(Date.now() / 1000) + 50 * 24 * 60 * 60;
+  await saveToken({
+    access_token: initialToken,
+    expires_at: expiresAt,
+    token_type: 'bearer',
+  });
 }
 
 async function getAccessToken(): Promise<string> {
+  const envToken = process.env.INSTAGRAM_ACCESS_TOKEN || '';
+
+  // Production: always use env token directly (no file writes)
+  if (!canUseFileStorage) {
+    return envToken;
+  }
+
   try {
     let storedToken = await getStoredToken();
-    
-    // If no stored token, initialize from .env
+
     if (!storedToken) {
       await initializeTokenFromEnv();
       storedToken = await getStoredToken();
     }
-    
+
     if (!storedToken) {
-      // Fallback to env or default
-      return process.env.INSTAGRAM_ACCESS_TOKEN || '';
+      return envToken;
     }
-    
+
     const now = Math.floor(Date.now() / 1000);
-    
-    // Check if token expires within 5 days (refresh proactively)
+
     if (storedToken.expires_at - now > 5 * 24 * 60 * 60) {
-      // Token is still valid
       return storedToken.access_token;
     }
-    
-    // Token expired or expiring soon, refresh it
-    const tokenToRefresh = storedToken.access_token;
-    return await refreshTokenIfNeeded(tokenToRefresh);
+
+    return await refreshTokenIfNeeded(storedToken.access_token);
   } catch (error) {
     console.log('Error reading token, using env fallback');
   }
-  
-  // Fallback to environment variable or default token
-  return process.env.INSTAGRAM_ACCESS_TOKEN || '';
+
+  return envToken;
 }
 
 export async function GET() {
   try {
     const accessToken = await getAccessToken();
-    const url = `https://graph.facebook.com/v24.0/${INSTAGRAM_USER_ID}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=3&access_token=${accessToken}`;
-    
+
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: 'Instagram access token is not configured' },
+        { status: 500 }
+      );
+    }
+
+    const fields =
+      'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count';
+    const url = `https://graph.facebook.com/v24.0/${INSTAGRAM_USER_ID}/media?fields=${fields}&limit=3&access_token=${accessToken}`;
+
     const response = await fetch(url, {
-      next: { revalidate: 3600 } // Cache for 1 hour
+      next: { revalidate: 3600 },
     });
 
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Instagram API Error:', errorData);
-      
-      // If token error, clear stale cache and retry with fresh env token
+
       if (errorData.error?.code === 190 || errorData.error?.message?.includes('token')) {
-        console.log('Token error detected, clearing cache and retrying with env token...');
+        console.log('Token error detected, retrying with env token...');
         await clearStoredToken();
-        await initializeTokenFromEnv();
+
         const newToken = process.env.INSTAGRAM_ACCESS_TOKEN || '';
         if (!newToken) {
           return NextResponse.json(
@@ -135,13 +152,17 @@ export async function GET() {
             { status: response.status }
           );
         }
-        const retryResponse = await fetch(`https://graph.facebook.com/v24.0/${INSTAGRAM_USER_ID}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=3&access_token=${newToken}`);
+
+        const retryResponse = await fetch(
+          `https://graph.facebook.com/v24.0/${INSTAGRAM_USER_ID}/media?fields=${fields}&limit=3&access_token=${newToken}`
+        );
+
         if (retryResponse.ok) {
           const retryData = await retryResponse.json();
           return NextResponse.json(retryData);
         }
       }
-      
+
       return NextResponse.json(
         { error: 'Failed to fetch Instagram posts', details: errorData },
         { status: response.status }
@@ -153,7 +174,10 @@ export async function GET() {
   } catch (error) {
     console.error('Error fetching Instagram posts:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
       { status: 500 }
     );
   }
